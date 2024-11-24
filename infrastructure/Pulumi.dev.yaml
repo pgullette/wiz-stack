@@ -1,0 +1,5 @@
+encryptionsalt: v1:PZrcHaUxQAU=:v1:H3jyFbDw10nkOtAy:m5eXZPMdcjCZkPjwGPBbm07Har+ihQ==
+config:
+  aws:region: us-east-1
+  infrastructure:my-secret:
+    secure: v1:vU7lsKjUYHS24gq1:wy/AKkkw6OAwZKlnn24CBn+xhz2LqmhyXWDmn4SdDxo=
