@@ -25,7 +25,7 @@ private_subnet = aws.ec2.Subnet(
     "private-subnet",
     vpc_id=vpc.id,
     cidr_block="10.0.2.0/24",
-    availability_zone="us-east-1a",
+    availability_zone="us-east-1b",
     tags={"Name": "private-subnet"},
 )
 
