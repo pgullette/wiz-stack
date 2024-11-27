@@ -15,7 +15,7 @@ spec:
   - helmTemplate:
       valuesFrom:
       - secretRef:
-        name: external-secrets-values
+          name: external-secrets-values
 
   deploy:
   - kapp: {}
