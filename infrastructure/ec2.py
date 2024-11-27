@@ -4,6 +4,12 @@ import pulumi_aws as aws
 from network import public_subnet_a, vpc
 from s3 import s3_bucket
 
+# Load Pulumi configuration and needed variables
+config = pulumi.Config()
+git_repo_url = config.require("git_repo_url")
+s3_bucket_name = config.require("s3_bucket")
+vpc_cidr_block = config.require_object("vpc")["cidr_block"]
+
 # AMI Lookup
 ami = aws.ec2.get_ami(
     most_recent=True,
@@ -28,25 +34,24 @@ role = aws.iam.Role("ec2InstanceRole",
 )
 
 # Create an IAM Policy that grants permissions to upload to S3
+policy_object = {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "s3:PutObject",
+            "Resource": f"arn:aws:s3:::{s3_bucket_name}/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": f"arn:aws:s3:::{s3_bucket_name}"
+        }
+    ]
+}
 policy = aws.iam.Policy("ec2S3UploadPolicy",
     description="Policy that allows EC2 to upload to a specific S3 bucket",
-    policy=s3_bucket.bucket.apply(
-        lambda bucket: json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": "s3:PutObject",
-                    "Resource": "arn:aws:s3:::{bucket}/*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": "s3:ListBucket",
-                    "Resource": "arn:aws:s3:::{bucket}"
-                }
-            ]
-        })
-    )
+    policy=json.dumps(policy_object)
 )
 
 # Attach the policy to the role
@@ -97,12 +102,6 @@ aws.ec2.SecurityGroupRule(
     cidr_blocks=[vpc.cidr_block]
 )
 
-# Load Pulumi configuration and needed variables
-config = pulumi.Config()
-git_repo_url = config.require("git_repo_url")
-s3_bucket_name = config.require("s3_bucket")
-vpc_cidr_block = config.require_object("vpc")["cidr_block"]
-
 # user_data Script
 user_data_script = f"""#!/bin/bash
 # Update packages and install Ansible
@@ -141,3 +140,4 @@ db_instance = aws.ec2.Instance(
 
 pulumi.export("db_instance_public_dns", db_instance.public_dns)
 pulumi.export("user-data", user_data_script)
+pulumi.export("policy", policy)
