@@ -1,0 +1,21 @@
+apiVersion: kappctrl.k14s.io/v1alpha1
+kind: App
+metadata:
+  name: external-secrets
+  namespace: kapp-apps
+spec:
+  serviceAccount: kapp-apps-sa
+  fetch:
+  - helmChart:
+      name: external-secrets
+      repository:
+        url: https://charts.external-secrets.io
+
+  template:
+  - helmTemplate:
+      valuesFrom:
+      - secretRef:
+        name: external-secrets-values
+
+  deploy:
+  - kapp: {}

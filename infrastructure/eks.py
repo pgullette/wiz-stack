@@ -214,9 +214,9 @@ k8s_provider = k8s.Provider(
 )
 
 # Install kapp-controller to the cluster
-kapp_controller_yaml = k8s.yaml.ConfigFile(
+kapp_controller = k8s.yaml.v2.ConfigFile(
     "kapp-controller",
-    file="https://github.com/vmware-tanzu/carvel-kapp-controller/releases/latest/download/release.yml",
+    file="https://github.com/carvel-dev/kapp-controller/releases/latest/download/release.yml",
     opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
@@ -242,12 +242,13 @@ spec:
 """
 
 # Install kapp app to finish bootstrapping the cluster
-kapp_controller_yaml = k8s.yaml.ConfigFile(
+kapp_controller = k8s.yaml.v2.ConfigGroup(
     "kapp-controller",
-    contents=kapp_app,
-    opts=pulumi.ResourceOptions(provider=k8s_provider)
+    yaml=kapp_app,
+    opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=kapp_controller)
 )
 
 # Export cluster info
 pulumi.export("eks_cluster_name", eks_cluster.name)
 pulumi.export("eks_cluster_endpoint", eks_cluster.endpoint)
+pulumi.export("kapp_app", kapp_app)
