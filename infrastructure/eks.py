@@ -1,7 +1,12 @@
 import pulumi
 import pulumi_aws as aws
+import pulumi_kubernetes as k8s
 import json
 from network import private_subnet_a, private_subnet_b, public_subnet_a, public_subnet_b, vpc
+
+# Load Pulumi configuration and needed variables
+config = pulumi.Config()
+git_repo_url = config.require("git_repo_url")
 
 # Retrieve the Amazon Linux 2 AMI for the us-east-1 region
 ami = aws.ec2.get_ami(
@@ -160,6 +165,87 @@ load_balancer = aws.lb.LoadBalancer(
     internal=False,
     security_groups=[node_sg.id],
     subnets=[public_subnet_a.id, public_subnet_b.id]
+)
+
+# Generate the kubeconfig
+kubeconfig = pulumi.Output.all(
+    cluster_name=eks_cluster.name,
+    cluster_endpoint=eks_cluster.endpoint,
+    cluster_certificate=eks_cluster.certificate_authority.apply(lambda ca: ca["data"])
+).apply(lambda args: json.dumps({
+    "apiVersion": "v1",
+    "clusters": [{
+        "cluster": {
+            "server": args["cluster_endpoint"],
+            "certificate-authority-data": args["cluster_certificate"]
+        },
+        "name": "kubernetes"
+    }],
+    "contexts": [{
+        "context": {
+            "cluster": "kubernetes",
+            "user": "aws"
+        },
+        "name": "aws"
+    }],
+    "current-context": "aws",
+    "kind": "Config",
+    "users": [{
+        "name": "aws",
+        "user": {
+            "exec": {
+                "apiVersion": "client.authentication.k8s.io/v1beta1",
+                "command": "aws",
+                "args": [
+                    "eks",
+                    "get-token",
+                    "--cluster-name",
+                    args["cluster_name"]
+                ]
+            }
+        }
+    }]
+}))
+
+# Add k8s bootstrap components to cluster
+k8s_provider = k8s.Provider(
+    "k8s-provider",
+    kubeconfig=kubeconfig
+)
+
+# Install kapp-controller to the cluster
+kapp_controller_yaml = k8s.yaml.ConfigFile(
+    "kapp-controller",
+    file="https://github.com/vmware-tanzu/carvel-kapp-controller/releases/latest/download/release.yml",
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
+)
+
+# Kapp app
+kapp_app = f"""
+apiVersion: kappctrl.k14s.io/v1alpha1
+kind: App
+metadata:
+    name: bootstrap-app
+spec:
+    serviceAccountName: default
+    fetch:
+    - git:
+        url: {git_repo_url}
+        ref: origin/main
+        subPath: kapp
+
+    template:
+    - ytt: {{}}
+
+    deploy:
+    - kapp: {{}}
+"""
+
+# Install kapp app to finish bootstrapping the cluster
+kapp_controller_yaml = k8s.yaml.ConfigFile(
+    "kapp-controller",
+    contents=kapp_app,
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
 # Export cluster info
