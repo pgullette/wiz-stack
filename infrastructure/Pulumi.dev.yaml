@@ -3,3 +3,4 @@ config:
   aws:region: us-east-1
   infrastructure:my-secret:
     secure: v1:vU7lsKjUYHS24gq1:wy/AKkkw6OAwZKlnn24CBn+xhz2LqmhyXWDmn4SdDxo=
+  infrastructure:gitRepoUrl: https://github.com/pgullette/wiz-stack.git

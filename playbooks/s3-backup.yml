@@ -1,0 +1,31 @@
+---
+- name: Configure S3 backups for PostgreSQL
+  hosts: postgres
+  become: yes
+  tasks:
+    - name: Install AWS CLI
+      yum:
+        name: aws-cli
+        state: present
+
+    - name: Install gzip for compression (if not already installed)
+      yum:
+        name: gzip
+        state: present
+
+    - name: Create backup directory if not exists
+      file:
+        path: /var/backups
+        state: directory
+        mode: '0755'
+
+    - name: Create a cron job for daily PostgreSQL backup to S3
+      cron:
+        name: "PostgreSQL Daily Backup"
+        minute: "0"
+        hour: "2"
+        job: |
+          pg_dumpall -U postgres | gzip > /var/backups/pg_backup_$(date +\%F).sql.gz
+          aws s3 cp /var/backups/pg_backup_$(date +\%F).sql.gz s3://{{ s3_bucket_name }}/pg_backups/
+        state: present
+        user: postgres

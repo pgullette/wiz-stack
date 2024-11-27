@@ -1,4 +1,4 @@
 import network
 import eks
-import ec2
 import s3
+import ec2
