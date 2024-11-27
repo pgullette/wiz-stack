@@ -220,14 +220,25 @@ kapp_controller = k8s.yaml.v2.ConfigFile(
     opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
+# Install kapp bootstrap prereqs to the cluster
+kapp_prereqs = k8s.yaml.v2.ConfigFile(
+    "kapp-prereqs",
+    file="kapp-prereqs/k8s-resources.yaml",
+    opts=pulumi.ResourceOptions(
+        provider=k8s_provider,
+        depends_on=kapp_controller
+    )
+)
+
 # Kapp app
 kapp_app = f"""
 apiVersion: kappctrl.k14s.io/v1alpha1
 kind: App
 metadata:
     name: bootstrap-app
+    namespace: kapp-apps
 spec:
-    serviceAccountName: default
+    serviceAccountName: kapp-apps-sa
     fetch:
     - git:
         url: {git_repo_url}
@@ -242,13 +253,15 @@ spec:
 """
 
 # Install kapp app to finish bootstrapping the cluster
-kapp_controller = k8s.yaml.v2.ConfigGroup(
-    "kapp-controller",
+kapp_bootstrap = k8s.yaml.v2.ConfigGroup(
+    "kapp-bootstrap",
     yaml=kapp_app,
-    opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=kapp_controller)
+    opts=pulumi.ResourceOptions(
+        provider=k8s_provider, 
+        depends_on=kapp_prereqs
+    )
 )
 
 # Export cluster info
 pulumi.export("eks_cluster_name", eks_cluster.name)
 pulumi.export("eks_cluster_endpoint", eks_cluster.endpoint)
-pulumi.export("kapp_app", kapp_app)
