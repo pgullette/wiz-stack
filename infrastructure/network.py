@@ -1,10 +1,14 @@
 import pulumi
 import pulumi_aws as aws
 
+# Load Pulumi configuration and needed variables
+config = pulumi.Config()
+vpc_config = config.require_object("vpc")
+
 # Create a VPC
 vpc = aws.ec2.Vpc(
     "vpc",
-    cidr_block="10.0.0.0/16",
+    cidr_block=vpc_config["cidr_block"],
     enable_dns_hostnames=True,
     enable_dns_support=True
 )
@@ -13,7 +17,7 @@ vpc = aws.ec2.Vpc(
 public_subnet_a = aws.ec2.Subnet(
     "public-subnet-a",
     vpc_id=vpc.id,
-    cidr_block="10.0.1.0/24",
+    cidr_block=vpc_config["public_subnet_a"],
     map_public_ip_on_launch=True,
     availability_zone="us-east-1a",
     tags={"Name": "public-subnet-a"}
@@ -22,7 +26,7 @@ public_subnet_a = aws.ec2.Subnet(
 public_subnet_b = aws.ec2.Subnet(
     "public-subnet-b",
     vpc_id=vpc.id,
-    cidr_block="10.0.2.0/24",
+    cidr_block=vpc_config["public_subnet_b"],
     map_public_ip_on_launch=True,
     availability_zone="us-east-1b",
     tags={"Name": "public-subnet-b"}
@@ -32,7 +36,7 @@ public_subnet_b = aws.ec2.Subnet(
 private_subnet_a = aws.ec2.Subnet(
     "private-subnet-a",
     vpc_id=vpc.id,
-    cidr_block="10.0.10.0/24",
+    cidr_block=vpc_config["private_subnet_a"],
     map_public_ip_on_launch=False,
     availability_zone="us-east-1a",
     tags={"Name": "private-subnet-a", "kubernetes.io/role/internal-elb": "1"}
@@ -41,7 +45,7 @@ private_subnet_a = aws.ec2.Subnet(
 private_subnet_b = aws.ec2.Subnet(
     "private-subnet-b",
     vpc_id=vpc.id,
-    cidr_block="10.0.11.0/24",
+    cidr_block=vpc_config["private_subnet_b"],
     map_public_ip_on_launch=False,
     availability_zone="us-east-1b",
     tags={"Name": "private-subnet-b", "kubernetes.io/role/internal-elb": "1"}

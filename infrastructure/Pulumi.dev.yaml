@@ -3,4 +3,11 @@ config:
   aws:region: us-east-1
   infrastructure:my-secret:
     secure: v1:vU7lsKjUYHS24gq1:wy/AKkkw6OAwZKlnn24CBn+xhz2LqmhyXWDmn4SdDxo=
-  infrastructure:gitRepoUrl: https://github.com/pgullette/wiz-stack.git
+  infrastructure:git_repo_url: https://github.com/pgullette/wiz-stack.git
+  infrastructure:s3_bucket: wiz-db-backups-for-me
+  infrastructure:vpc:
+    cidr_block: 10.0.0.0/16
+    public_subnet_a: 10.0.1.0/24
+    public_subnet_b: 10.0.2.0/24
+    private_subnet_a: 10.0.11.0/24
+    private_subnet_b: 10.0.12.0/24

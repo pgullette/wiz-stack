@@ -97,9 +97,11 @@ aws.ec2.SecurityGroupRule(
     cidr_blocks=[vpc.cidr_block]
 )
 
-# Load Pulumi configuration
+# Load Pulumi configuration and needed variables
 config = pulumi.Config()
-git_repo_url = config.require("gitRepoUrl")  # Retrieve the Git repository URL
+git_repo_url = config.require("git_repo_url")
+s3_bucket_name = config.require("s3_bucket")
+vpc_cidr_block = config.require_object("vpc")["cidr_block"]
 
 # user_data Script
 user_data_script = f"""#!/bin/bash
@@ -115,8 +117,8 @@ git clone {git_repo_url} /tmp/wiz-stack
 cd /tmp/wiz-stack/playbooks
 cat <<EOF > dynamic-vars.yml
 ---
-s3_bucket_name: {s3_bucket.bucket}
-vpc_cidr: {vpc.cidr_block}
+s3_bucket_name: {s3_bucket_name}
+vpc_cidr: {vpc_cidr_block}
 EOF
 
 # Run the playbooks
@@ -138,3 +140,4 @@ db_instance = aws.ec2.Instance(
 )
 
 pulumi.export("db_instance_public_dns", db_instance.public_dns)
+pulumi.export("user-data", user_data_script)
