@@ -2,7 +2,6 @@ import pulumi
 import json
 import pulumi_aws as aws
 from network import public_subnet_a, vpc
-from s3 import s3_bucket
 
 # Load Pulumi configuration and needed variables
 config = pulumi.Config()
