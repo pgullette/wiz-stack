@@ -17,15 +17,16 @@
 [ ] Deploy your container-based web application to the EKS cluster.  
 [ ] Ensure your web application authenticates to your database server (connection strings are a common approach).  
 [ ] Allow public internet traffic to your web application using the service type `LoadBalancer`.  
-[ ] Configure your EKS cluster to grant `cluster-admin` privileges to your web application container(s).  
+[ ] Configure your EKS cluster to grant `cluster-admin` privileges to your web application container(s).
+[ ] Update web-app to show games, moves, players
 
 ## S3 Bucket Configuration
 
 [x] Create an S3 bucket to hold your database backups.  
-[ ] Configure your bucket such that the public can read and download objects from it.  
+[x] Configure your bucket such that the public can read and download objects from it.  
 
 ## AWS Config
 
-[ ] Activate and ensure AWS Config covers your environment.  
-[ ] Ensure AWS Config detects one or more misconfigurations you can review in your presentation, introducing novel misconfigurations if necessary.  
+[x] Activate and ensure AWS Config covers your environment.  
+[x] Ensure AWS Config detects one or more misconfigurations you can review in your presentation, introducing novel misconfigurations if necessary.  
 
