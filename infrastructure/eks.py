@@ -1,8 +1,5 @@
 import pulumi
 import pulumi_aws as aws
-import pulumi_std as std
-import pulumi_tls as tls
-import pulumi_kubernetes as k8s
 import json
 from network import private_subnet_a, private_subnet_b, public_subnet_a, public_subnet_b, vpc
 
@@ -74,53 +71,6 @@ eks_cluster = aws.eks.Cluster(
         security_group_ids=[node_sg.id]
     ),
     tags={"Name": "eks-cluster"}
-)
-
-oidc_issuer = eks_cluster.identities.apply(lambda identities: tls.get_certificate_output(url=identities[0].oidcs[0].issuer))
-
-open_id_connect_provider = aws.iam.OpenIdConnectProvider("oidc-provider",
-    client_id_lists=["sts.amazonaws.com"],
-    thumbprint_lists=[oidc_issuer.certificates[0].sha1_fingerprint],
-    url=oidc_issuer.url)
-
-assume_role_policy = aws.iam.get_policy_document_output(statements=[{
-    "actions": ["sts:AssumeRoleWithWebIdentity"],
-    "effect": "Allow",
-    "conditions": [{
-        "test": "StringEquals",
-        "variable": std.replace_output(text=open_id_connect_provider.url,
-            search="https://",
-            replace="").apply(lambda invoke: f"{invoke.result}:sub"),
-        "values": ["system:serviceaccount:kapp-apps:external-secrets-sa"],
-    }],
-    "principals": [{
-        "identifiers": [open_id_connect_provider.arn],
-        "type": "Federated",
-    }],
-}])
-
-external_secrets_role = aws.iam.Role("external-secrets-irsa",
-    assume_role_policy=assume_role_policy.json,
-    name="external-secrets-irsa")
-
-# Create IAM policy for the service account
-iam_policy = aws.iam.Policy("allow-secrets-manager-policy",
-    policy=json.dumps({
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": "secretsmanager:GetSecretValue",
-                "Resource": "*"
-            }
-        ]
-    }),
-)
-
-# Attach the policy to the irsa role
-aws.iam.RolePolicyAttachment("irsa-policy-attachment",
-    role=external_secrets_role.name,
-    policy_arn=iam_policy.arn
 )
 
 # Add CoreDNS add-on
@@ -214,101 +164,6 @@ load_balancer = aws.lb.LoadBalancer(
     internal=False,
     security_groups=[node_sg.id],
     subnets=[public_subnet_a.id, public_subnet_b.id]
-)
-
-# Generate the kubeconfig
-kubeconfig = pulumi.Output.all(
-    cluster_name=eks_cluster.name,
-    cluster_endpoint=eks_cluster.endpoint,
-    cluster_certificate=eks_cluster.certificate_authority.apply(lambda ca: ca["data"])
-).apply(lambda args: json.dumps({
-    "apiVersion": "v1",
-    "clusters": [{
-        "cluster": {
-            "server": args["cluster_endpoint"],
-            "certificate-authority-data": args["cluster_certificate"]
-        },
-        "name": "kubernetes"
-    }],
-    "contexts": [{
-        "context": {
-            "cluster": "kubernetes",
-            "user": "aws"
-        },
-        "name": "aws"
-    }],
-    "current-context": "aws",
-    "kind": "Config",
-    "users": [{
-        "name": "aws",
-        "user": {
-            "exec": {
-                "apiVersion": "client.authentication.k8s.io/v1beta1",
-                "command": "aws",
-                "args": [
-                    "eks",
-                    "get-token",
-                    "--cluster-name",
-                    args["cluster_name"]
-                ]
-            }
-        }
-    }]
-}))
-
-# Add k8s bootstrap components to cluster
-k8s_provider = k8s.Provider(
-    "k8s-provider",
-    kubeconfig=kubeconfig
-)
-
-# Install kapp-controller to the cluster
-kapp_controller = k8s.yaml.v2.ConfigFile(
-    "kapp-controller",
-    file="https://github.com/carvel-dev/kapp-controller/releases/latest/download/release.yml",
-    opts=pulumi.ResourceOptions(provider=k8s_provider)
-)
-
-# Install kapp bootstrap prereqs to the cluster
-kapp_prereqs = k8s.yaml.v2.ConfigFile(
-    "kapp-prereqs",
-    file="kapp-prereqs/k8s-resources.yaml",
-    opts=pulumi.ResourceOptions(
-        provider=k8s_provider,
-        depends_on=kapp_controller
-    )
-)
-
-# Kapp app
-kapp_app = f"""
-apiVersion: kappctrl.k14s.io/v1alpha1
-kind: App
-metadata:
-    name: bootstrap-app
-    namespace: kapp-apps
-spec:
-    serviceAccountName: kapp-apps-sa
-    fetch:
-    - git:
-        url: {git_repo_url}
-        ref: origin/main
-        subPath: kapp
-
-    template:
-    - ytt: {{}}
-
-    deploy:
-    - kapp: {{}}
-"""
-
-# Install kapp app to finish bootstrapping the cluster
-kapp_bootstrap = k8s.yaml.v2.ConfigGroup(
-    "kapp-bootstrap",
-    yaml=kapp_app,
-    opts=pulumi.ResourceOptions(
-        provider=k8s_provider, 
-        depends_on=kapp_prereqs
-    )
 )
 
 # Export cluster info

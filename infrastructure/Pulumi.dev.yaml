@@ -11,3 +11,7 @@ config:
     public_subnet_b: 10.0.2.0/24
     private_subnet_a: 10.0.10.0/24
     private_subnet_b: 10.0.11.0/24
+  infrastructure:external_secrets:
+    helm_chart: external-secrets
+    helm_repo: https://charts.external-secrets.io
+    helm_chart_version: 0.8.4

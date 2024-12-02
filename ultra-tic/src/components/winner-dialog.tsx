@@ -1,0 +1,57 @@
+import { CircleIcon, CopyIcon, Cross1Icon } from "@radix-ui/react-icons"
+
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { useEffect, useState } from "react"
+import { BoardValue } from "@/types/board"
+import { recordWinner } from '@/app/modal-actions'
+
+interface WinnerDialogProps {
+    winner: BoardValue,
+}
+
+export default function WinnerDialog({ winner }: WinnerDialogProps) {
+    const [open, setOpen] = useState<boolean>(winner ? true : false)
+    
+    // Record the winner to db when dialog is open
+    useEffect(() => {
+        if (open) {
+            recordWinner(winner)
+        }
+    }, [open])
+
+    return (
+        <>
+            <Dialog open={open}>
+                <DialogContent className="sm:max-w-md flex flex-col items-center">
+                    <DialogHeader>
+                        <DialogTitle className="text-center">Winner</DialogTitle>
+                        <DialogDescription className="flex flex-col w-full items-center">
+                            {winner ? (winner == 2 ?
+                                <CircleIcon className="text-red-500 h-6 w-6" /> :
+                                <Cross1Icon className="text-red-500 h-6 w-6" />
+                            ) : ""} has won the game !
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-start">
+                        <DialogClose asChild>
+                            <Button type="button" variant="default" onClick={() => { setOpen(false) }}>
+                                Close
+                            </Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}
