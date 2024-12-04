@@ -1,0 +1,34 @@
+---
+- name: Setup PostgreSQL access
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Allow access from VPC CIDR range in pg_hba.conf
+      community.postgresql.postgresql_pg_hba:
+        dest: "/var/lib/pgsql/data/pg_hba.conf" 
+        contype: "host"                        # Type: local, host, hostssl, etc.
+        users: ["all"]                         # PostgreSQL users
+        source: "{{ vpc_cidr }}"               # CIDR or IP for source
+        databases: ["all"]                     # Target database
+        method: "md5"                          # Authentication method
+
+    - name: Retrieve {{ web_app_postgres_secret }} secret
+      set_fact:
+        postgres_secret: "{{ lookup('amazon.aws.aws_secret', postgres_secret, region=aws_region) }}"
+
+    - name: Ensure {{ postgres_secret.username }} user exists with credentials
+      community.postgresql.postgresql_user:
+        name: "{{ postgres_secret.username }}"
+        password: "{{ postgres_secret.password }}"
+        db: "{{ postgres_secret.db }}"
+        state: present
+      vars:
+        ansible_postgres_user: postgres    # Run as the 'postgres' system user
+        ansible_postgres_host: ""          # Use local socket
+        ansible_postgres_port: 5432        # Default PostgreSQL port
+        ansible_postgres_db: postgres      # Default PostgreSQL database
+
+    - name: Reload PostgreSQL configuration
+      ansible.builtin.service:
+        name: postgresql
+        state: reloaded

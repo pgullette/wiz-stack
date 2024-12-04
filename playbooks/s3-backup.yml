@@ -1,6 +1,6 @@
 ---
 - name: Configure S3 backups for PostgreSQL
-  hosts: postgres
+  hosts: localhost
   become: yes
   tasks:
     - name: Install AWS CLI

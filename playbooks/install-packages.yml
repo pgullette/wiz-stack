@@ -1,6 +1,6 @@
 ---
-- name: Install PostgreSQL
-  hosts: postgres
+- name: Install Packages
+  hosts: localhost
   become: yes
   tasks:
     - name: Install PostgreSQL packages
@@ -25,3 +25,20 @@
         name: postgresql
         state: started
         enabled: yes
+
+    - name: Ensure pip is installed
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Install boto and boto3 using pip
+      ansible.builtin.pip:
+        name:
+          - boto
+          - boto3
+        state: present
+
+    - name: Install community.postgresql collection
+      ansible.builtin.ansible.builtin.ansible-galaxy:
+        command: "collection install"
+        name: "community.postgresql"

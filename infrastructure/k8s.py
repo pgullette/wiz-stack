@@ -18,6 +18,7 @@ git_repo_url = config.require("git_repo_url")
 es_config = config.require_object("external_secrets")
 internal_domain = config.require("internal_domain")
 db_instance_name = config.require("db_instance")
+web_app_config = config.require_object("web_app")
 
 # Generate the kubeconfig
 kubeconfig = pulumi.Output.all(
@@ -116,8 +117,8 @@ external_secrets_chart = k8s.helm.v4.Chart(
 ########################################
 # Namespace
 namespace = k8s.core.v1.Namespace(
-    "web-app",
-    metadata={"name": "web-app"},
+    web_app_config.get("name"),
+    metadata={"name": web_app_config.get("name")},
     opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
@@ -132,7 +133,8 @@ random_password = random.RandomPassword("dbPassword",
 
 # DB connection details secret
 db_secret = aws.secretsmanager.Secret(
-    "web-app-postgres-connection",
+    web_app_config.get("postgres_secret"),
+    name=web_app_config.get("postgres_secret"),
     description="PostgreSQL connection details",
     tags={
         "Environment": "Production"
@@ -143,10 +145,11 @@ db_secret = aws.secretsmanager.Secret(
 secret_version = aws.secretsmanager.SecretVersion("dbSecretVersion",
     secret_id=db_secret.id,
     secret_string=pulumi.Output.json_dumps({
-        "username": "webapp",
+        "username": web_app_config.get("name"),
         "password": random_password.result,
         "host": f"{db_instance_name}.{internal_domain}",
-        "port": 5432
+        "port": 5432,
+        "db": web_app_config.get("name")
     })
 )
 
@@ -186,7 +189,7 @@ iam_policy = aws.iam.Policy("web-app-allow-secrets-manager-policy",
             {
                 "Effect": "Allow",
                 "Action": "secretsmanager:GetSecretValue",
-                "Resource": f"arn:aws:secretsmanager:{aws.config.region}:{caller_identity.account_id}:secret:web-app*"
+                "Resource": f"arn:aws:secretsmanager:{aws.config.region}:{caller_identity.account_id}:secret:{web_app_config.get("name")}*"
             }
         ]
     })
@@ -202,7 +205,7 @@ aws.iam.RolePolicyAttachment("irsa-policy-attachment",
 service_account = k8s.core.v1.ServiceAccount(
     "web-app-sa",
     metadata={
-        "name": "web-app-sa",
+        "name": pulumi.Output.concat(namespace.metadata.name, "-sa"),
         "namespace": namespace.metadata.name,
         "annotations": {
             # Annotations for IRSA
@@ -258,7 +261,7 @@ postgres_external_secret = k8s.apiextensions.CustomResource("postgres-external-s
             "name": "postgres-url-secret",
             "template": {
                 "data": {
-                    "postgres-url": "postgres://{{ .username }}:{{ .password }}@{{ .host }}:{{ .port }}/ultratic"
+                    "postgres-url": "postgres://{{ .username }}:{{ .password }}@{{ .host }}:{{ .port }}/{{ .db }}"
                 },
             },
         },
@@ -290,6 +293,13 @@ postgres_external_secret = k8s.apiextensions.CustomResource("postgres-external-s
                     "key": db_secret.name,
                     "property": "port"
                 }
+            },
+            {
+                "secretKey": "db", 
+                "remoteRef": {
+                    "key": db_secret.name,
+                    "property": "db"
+                }
             }
         ]
     },
@@ -297,12 +307,12 @@ postgres_external_secret = k8s.apiextensions.CustomResource("postgres-external-s
 )
 
 # Web app deployment
-app_labels = {"app": "wiz-web-app"}
+app_labels = {"app": web_app_config.get("name")}
 
 deployment = k8s.apps.v1.Deployment(
-    "my-app-deployment",
+    web_app_config.get("name"),
     metadata={
-        "name": "ultratic",
+        "name": web_app_config.get("name"),
         "namespace": namespace.metadata.name
     },
     spec={
@@ -316,7 +326,7 @@ deployment = k8s.apps.v1.Deployment(
             },
             "spec": {
                 "containers": [{
-                    "name": "ultratic",
+                    "name": web_app_config.get("name"),
                     "image": pulumi.Output.concat(ecr_repository.repository_url, ":latest"),
                     "env": [{
                         "name": "DATABASE_URL",
@@ -336,9 +346,9 @@ deployment = k8s.apps.v1.Deployment(
 
 # Create a LoadBalancer Service for the Deployment
 service = k8s.core.v1.Service(
-    "my-app-service",
+    web_app_config.get("name"),
     metadata=k8s.meta.v1.ObjectMetaArgs(
-        name="my-app-service",
+        name=web_app_config.get("name"),
         namespace=namespace.metadata.name
     ),
     spec=k8s.core.v1.ServiceSpecArgs(
@@ -346,7 +356,7 @@ service = k8s.core.v1.Service(
         ports=[
             k8s.core.v1.ServicePortArgs(
                 port=80,
-                target_port=3000,
+                target_port=web_app_config.get("target_port"),
                 protocol="TCP"
             )
         ],

@@ -17,3 +17,8 @@ config:
     helm_chart_version: 0.8.4
   infrastructure:internal_domain: wiz.internal
   infrastructure:db_instance: db-instance
+  infrastructure:web_app:
+    name: ultratic
+    postgres_secret: ultratic-postgres-secret
+    target_port: 3000
+
