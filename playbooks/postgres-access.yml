@@ -12,11 +12,11 @@
         databases: ["all"]                     # Target database
         method: "md5"                          # Authentication method
 
-    - name: Retrieve {{ web_app_postgres_secret }} secret
+    - name: Retrieve postgres secret
       set_fact:
-        postgres_secret: "{{ lookup('amazon.aws.aws_secret', postgres_secret, region=aws_region) }}"
+        postgres_secret: "{{ lookup('amazon.aws.aws_secret', postgres_secret_name, region=aws_region) }}"
 
-    - name: Ensure {{ postgres_secret.username }} user exists with credentials
+    - name: Create postgres user exists with credentials
       community.postgresql.postgresql_user:
         name: "{{ postgres_secret.username }}"
         password: "{{ postgres_secret.password }}"
