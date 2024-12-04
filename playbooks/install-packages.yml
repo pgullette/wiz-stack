@@ -39,6 +39,6 @@
         state: present
 
     - name: Install community.postgresql collection
-      ansible.builtin.ansible.builtin.ansible-galaxy:
+      ansible.builtin.ansible-galaxy:
         command: "collection install"
         name: "community.postgresql"
