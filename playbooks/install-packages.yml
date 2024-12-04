@@ -5,7 +5,7 @@
   tasks:
     - name: Install PostgreSQL packages
       yum:
-        name: postgresql-server
+        name: postgresql15-server
         state: present
 
     - name: Initialize PostgreSQL database
