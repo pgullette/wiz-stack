@@ -37,8 +37,3 @@
           - boto
           - boto3
         state: present
-
-    - name: Install community.postgresql collection
-      ansible.builtin.ansible-galaxy:
-        command: "collection install"
-        name: "community.postgresql"

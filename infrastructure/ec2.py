@@ -117,8 +117,10 @@ aws.ec2.SecurityGroupRule(
 user_data_script = f"""#!/bin/bash
 # Update packages and install Ansible
 yum update -y
-amazon-linux-extras enable ansible2
 yum install -y ansible git
+
+# Install community.postgresql ansible collection
+ansible-galaxy collection install community.postgresql
 
 # Fetch Ansible playbook from configured repo
 git clone {git_repo_url} /tmp/wiz-stack
