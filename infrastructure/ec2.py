@@ -1,13 +1,18 @@
 import pulumi
 import json
 import pulumi_aws as aws
-from network import public_subnet_a, vpc
+from network import public_subnet_a, vpc, private_zone
 
 # Load Pulumi configuration and needed variables
 config = pulumi.Config()
 git_repo_url = config.require("git_repo_url")
 s3_bucket_name = config.require("s3_bucket")
 vpc_cidr_block = config.require_object("vpc")["cidr_block"]
+internal_domain = config.require("internal_domain")
+db_instance_name = config.require("db_instance")
+
+# Get AWS caller identity
+caller_identity = aws.get_caller_identity()
 
 # AMI Lookup
 ami = aws.ec2.get_ami(
@@ -32,7 +37,7 @@ role = aws.iam.Role("ec2InstanceRole",
     }"""
 )
 
-# Create an IAM Policy that grants permissions to upload to S3
+# Create an IAM Policy that grants necessary permissions to db instance
 policy_object = {
     "Version": "2012-10-17",
     "Statement": [
@@ -45,11 +50,17 @@ policy_object = {
             "Effect": "Allow",
             "Action": "s3:ListBucket",
             "Resource": f"arn:aws:s3:::{s3_bucket_name}"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": f"arn:aws:secretsmanager:{aws.config.region}:{caller_identity.account_id}:secret:web-app*"
         }
     ]
 }
-policy = aws.iam.Policy("ec2S3UploadPolicy",
-    description="Policy that allows EC2 to upload to a specific S3 bucket",
+
+policy = aws.iam.Policy("db-instance-extra-perms",
+    description="Policy that allows instance to access S3 bucket for backups and needed secrets",
     policy=json.dumps(policy_object)
 )
 
@@ -126,7 +137,7 @@ ansible-playbook -e @dynamic-vars.yml restrict-access.yml
 """
 
 db_instance = aws.ec2.Instance(
-    "db-instance",
+    db_instance_name,
     ami=ami.id,
     instance_type="t3.medium",
     subnet_id=public_subnet_a.id,
@@ -137,6 +148,15 @@ db_instance = aws.ec2.Instance(
     tags={"Name": "db-instance"}
 )
 
+# Add an A record to the wiz.internal zone for this instance
+dns_record = aws.route53.Record("myInstanceRecord",
+    zone_id=private_zone.id,
+    name=f"{db_instance_name}.{internal_domain}",
+    type="A",
+    ttl=60,
+    records=[db_instance.private_ip],  # Use the instance's private IP
+    opts=pulumi.ResourceOptions(depends_on=[db_instance]),
+)
+
 pulumi.export("db_instance_public_dns", db_instance.public_dns)
 pulumi.export("user-data", user_data_script)
-pulumi.export("policy", policy)

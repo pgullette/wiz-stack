@@ -4,6 +4,7 @@ import pulumi_aws as aws
 # Load Pulumi configuration and needed variables
 config = pulumi.Config()
 vpc_config = config.require_object("vpc")
+internal_domain = config.require("internal_domain")
 
 # Create a VPC
 vpc = aws.ec2.Vpc(
@@ -110,7 +111,15 @@ aws.ec2.RouteTableAssociation(
     subnet_id=private_subnet_b.id
 )
 
+# Create private hosted zone
+private_zone = aws.route53.Zone("internalZone",
+    name=internal_domain,
+    vpcs=[{
+        "vpcId": vpc.id,
+    }],
+)
+
 # Export resources
-pulumi.export("vpc_id", vpc.id)
-pulumi.export("public_subnets", [public_subnet_a.id, public_subnet_b.id])
-pulumi.export("private_subnets", [private_subnet_a.id, private_subnet_b.id])
+# pulumi.export("vpc_id", vpc.id)
+# pulumi.export("public_subnets", [public_subnet_a.id, public_subnet_b.id])
+# pulumi.export("private_subnets", [private_subnet_a.id, private_subnet_b.id])

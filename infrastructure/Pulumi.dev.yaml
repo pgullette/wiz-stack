@@ -15,3 +15,5 @@ config:
     helm_chart: external-secrets
     helm_repo: https://charts.external-secrets.io
     helm_chart_version: 0.8.4
+  infrastructure:internal_domain: wiz.internal
+  infrastructure:db_instance: db-instance

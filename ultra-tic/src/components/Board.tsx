@@ -75,7 +75,7 @@ export default function Board({ value, turn, boardIndex, setTurn, setWinner, out
             setBoard([null, null, null, null, null, null, null, null, null])
             setReset(false)
         }
-    })
+    }, [board])
 
 
     return (

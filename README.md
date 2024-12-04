@@ -18,7 +18,6 @@
 [ ] Ensure your web application authenticates to your database server (connection strings are a common approach).  
 [ ] Allow public internet traffic to your web application using the service type `LoadBalancer`.  
 [ ] Configure your EKS cluster to grant `cluster-admin` privileges to your web application container(s).
-[ ] Update web-app to show games, moves, players
 
 ## S3 Bucket Configuration
 
@@ -29,4 +28,14 @@
 
 [x] Activate and ensure AWS Config covers your environment.  
 [x] Ensure AWS Config detects one or more misconfigurations you can review in your presentation, introducing novel misconfigurations if necessary.  
+
+## Stretch Goals
+[ ] Update web-app to show games, moves, players
+[ ] Add github action to rebuild and publish container image
+[ ] Add github action to deploy built image
+[ ] Use local runner with ecr perms via iam role
+[ ] Deploy runner, ns, rbac, etc with pulumi
+[ ] Create secret with pulumi for db creds
+[ ] Use secret during db instance creation
+[ ] Mount secret to web app via external-secrets
 

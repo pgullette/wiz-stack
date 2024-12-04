@@ -10,6 +10,15 @@
 
     - name: Initialize PostgreSQL database
       command: postgresql-setup initdb
+      args:
+        creates: /var/lib/pgsql/data/postgresql.conf
+
+    - name: Update listen_addresses in postgresql.conf
+      lineinfile:
+        path: /var/lib/pgsql/data/postgresql.conf
+        regexp: '^#?listen_addresses ='
+        line: "listen_addresses = '*'"
+        state: present
 
     - name: Start PostgreSQL service
       service:

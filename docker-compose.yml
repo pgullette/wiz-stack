@@ -3,6 +3,7 @@ version: '3.4'
 services:
   ultratic:
     image: ultratic
+    platform: linux/amd64
     build:
       context: ultra-tic
       dockerfile: ./Dockerfile

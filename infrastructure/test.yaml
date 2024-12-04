@@ -1,0 +1,17 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+    name: example
+    namespace: web-app
+spec:
+    refreshInterval: 1h
+    secretStoreRef:
+        kind: SecretStore
+        name: aws
+    target:
+        name: secret-to-be-created
+        creationPolicy: Owner
+    data:
+    - secretKey: secret
+      remoteRef:
+        key: web-app-test-secret
