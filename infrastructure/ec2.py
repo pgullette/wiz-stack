@@ -128,7 +128,7 @@ cat <<EOF > dynamic-vars.yml
 ---
 s3_bucket_name: {s3_bucket_name}
 vpc_cidr: {vpc_cidr_block}
-postgres_secret: {web_app_config.get("name")}
+postgres_secret: {web_app_config.get("postgres_secret")}
 aws_region: {aws.config.region}
 EOF
 

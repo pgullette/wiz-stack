@@ -37,3 +37,8 @@
           - boto
           - boto3
         state: present
+
+    - name: Install cron
+      yum:
+        name: cronie
+        state: present
