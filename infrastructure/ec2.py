@@ -119,9 +119,6 @@ user_data_script = f"""#!/bin/bash
 yum update -y
 yum install -y ansible git
 
-# Install community.postgresql ansible collection
-ansible-galaxy collection install community.postgresql
-
 # Fetch Ansible playbook from configured repo
 git clone {git_repo_url} /tmp/wiz-stack
 
@@ -135,9 +132,16 @@ postgres_secret: {web_app_config.get("name")}
 aws_region: {aws.config.region}
 EOF
 
-# Run the playbooks
+# Install postgres and other needed packages
 ansible-playbook -e @dynamic-vars.yml install-packages.yml
+
+# Install community.postgresql ansible collection
+ansible-galaxy collection install community.postgresql
+
+# Setup s3 backup routine
 ansible-playbook -e @dynamic-vars.yml s3-backup.yml
+
+# Setup postgres access rules and users
 ansible-playbook -e @dynamic-vars.yml postgres-access.yml
 """
 
