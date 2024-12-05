@@ -19,6 +19,6 @@ config:
   infrastructure:db_instance: db-instance
   infrastructure:web_app:
     name: ultratic
-    postgres_secret: ultratic-postgres-secret
+    postgres_secret: ultratic-postgres-secret-v1
     target_port: 3000
 

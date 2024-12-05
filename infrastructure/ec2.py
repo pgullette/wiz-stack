@@ -2,6 +2,7 @@ import pulumi
 import json
 import pulumi_aws as aws
 from network import public_subnet_a, vpc, private_zone
+from k8s import secret_version
 
 # Load Pulumi configuration and needed variables
 config = pulumi.Config()
@@ -159,7 +160,8 @@ db_instance = aws.ec2.Instance(
     iam_instance_profile=instance_profile.name,
     key_name="my-mbp",
     user_data=user_data_script,
-    tags={"Name": "db-instance"}
+    tags={"Name": "db-instance"},
+    opts=pulumi.ResourceOptions(depends_on=secret_version)
 )
 
 # Add an A record to the wiz.internal zone for this instance
