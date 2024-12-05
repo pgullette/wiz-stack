@@ -241,7 +241,10 @@ css = k8s.yaml.v2.ConfigGroup(
             }
         }
     }],
-    opts=pulumi.ResourceOptions(provider=k8s_provider)
+    opts=pulumi.ResourceOptions(
+        provider=k8s_provider,
+        depends_on=external_secrets_chart
+    )
 )
 
 # Create externalsecret resource to generate the db connection url from aws secret
@@ -361,7 +364,8 @@ service = k8s.core.v1.Service(
             )
         ],
         type="LoadBalancer"  # Expose via LoadBalancer
-    )
+    ),
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
 # Install kapp-controller to the cluster
