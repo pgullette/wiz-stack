@@ -6,7 +6,8 @@ import pulumi_aws as aws
 config_bucket = aws.s3.Bucket(
     "configBucket",
     bucket_prefix="aws-config-",
-    acl="private"
+    acl="private",
+    force_destroy=True
 )
 
 # Bucket policy to allow AWS Config to write to the bucket

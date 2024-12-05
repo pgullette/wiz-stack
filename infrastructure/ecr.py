@@ -8,6 +8,7 @@ ecr_repository = aws.ecr.Repository(
     image_scanning_configuration=aws.ecr.RepositoryImageScanningConfigurationArgs(
         scan_on_push=True,  # Enable image scanning on push
     ),
+    force_delete=True,
     tags={
         "Environment": "Development", 
     }
