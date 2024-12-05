@@ -12,9 +12,19 @@
         databases: ["all"]                     # Target database
         method: "md5"                          # Authentication method
 
+    - name: Reload PostgreSQL configuration
+      ansible.builtin.service:
+        name: postgresql
+        state: reloaded
+
     - name: Retrieve postgres secret
       set_fact:
         postgres_secret: "{{ lookup('amazon.aws.aws_secret', postgres_secret_name, region=aws_region) }}"
+
+    - name: Create postgres database
+      community.postgresql.postgresql_db:
+        name: "{{ postgres_secret.db }}"
+      become_user: postgres
 
     - name: Create postgres user exists with credentials
       community.postgresql.postgresql_user:
@@ -22,13 +32,12 @@
         password: "{{ postgres_secret.password }}"
         db: "{{ postgres_secret.db }}"
         state: present
-      vars:
-        ansible_postgres_user: postgres    # Run as the 'postgres' system user
-        ansible_postgres_host: ""          # Use local socket
-        ansible_postgres_port: 5432        # Default PostgreSQL port
-        ansible_postgres_db: postgres      # Default PostgreSQL database
+      become_user: postgres
 
-    - name: Reload PostgreSQL configuration
-      ansible.builtin.service:
-        name: postgresql
-        state: reloaded
+    - name: Grant user privileges to created database
+      community.postgresql.postgresql_privs:
+        db: "{{ postgres_secret.db }}"
+        privs: ALL
+        type: database
+        role: "{{ postgres_secret.username }}"
+      become_user: postgres

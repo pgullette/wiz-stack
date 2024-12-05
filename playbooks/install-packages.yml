@@ -8,6 +8,7 @@
         name: 
           - postgresql15-server
           - cronie
+          - python3-pip
         state: present
 
     - name: Initialize PostgreSQL database
@@ -27,11 +28,6 @@
         name: postgresql
         state: started
         enabled: yes
-
-    - name: Ensure pip is installed
-      ansible.builtin.package:
-        name: python3-pip
-        state: present
 
     - name: Install python dependencies using pip
       ansible.builtin.pip:
