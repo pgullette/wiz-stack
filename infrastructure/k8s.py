@@ -5,8 +5,10 @@ import pulumi_aws as aws
 import pulumi_std as std
 import pulumi_tls as tls
 import pulumi_random as random
+import pulumi_docker_build as docker_build
 from eks import eks_cluster
 from ecr import ecr_repository
+from urllib.parse import quote
 
 # Get AWS caller identity
 caller_identity = aws.get_caller_identity()
@@ -75,20 +77,6 @@ namespace = k8s.core.v1.Namespace(
     opts=pulumi.ResourceOptions(provider=k8s_provider)
 )
 
-# Service Account
-# service_account = k8s.core.v1.ServiceAccount(
-#     "external-secrets-sa",
-#     metadata={
-#         "name": "external-secrets-sa",
-#         "namespace": namespace.metadata["name"],
-#         "annotations": {
-#             # Annotations for IRSA
-#             "eks.amazonaws.com/role-arn": external_secrets_role.arn,
-#         },
-#     },
-#     opts=pulumi.ResourceOptions(provider=k8s_provider)
-# )
-
 # Helm Chart
 external_secrets_chart = k8s.helm.v4.Chart(
     es_config.get("helm_chart"),
@@ -98,13 +86,6 @@ external_secrets_chart = k8s.helm.v4.Chart(
         repo=es_config.get("helm_repo")
     ),
     namespace=namespace.metadata["name"],
-    values={
-        # Use the custom service account
-        # "serviceAccount": {
-        #     "create": False,  # Disable default service account creation
-        #     "name": service_account.metadata["name"],
-        # },
-    },
     opts=pulumi.ResourceOptions(
         provider=k8s_provider,
         depends_on=[namespace]
@@ -263,7 +244,7 @@ postgres_external_secret = k8s.apiextensions.CustomResource("postgres-external-s
             "name": "postgres-url-secret",
             "template": {
                 "data": {
-                    "postgres-url": "postgres://{{ .username }}:{{ .password }}@{{ .host }}:{{ .port }}/{{ .db }}"
+                    "postgres-url": "postgres://{{ .username }}:{{ .password | urlquery }}@{{ .host }}:{{ .port }}/{{ .db }}"
                 },
             },
         },
@@ -311,110 +292,106 @@ postgres_external_secret = k8s.apiextensions.CustomResource("postgres-external-s
     )
 )
 
+# Build the web app from Dockerfile
+auth_token = aws.ecr.get_authorization_token()
+
+my_image = docker_build.Image("my-image",
+    cache_from=[{
+        "registry": {
+            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache"),
+        },
+    }],
+    cache_to=[{
+        "registry": {
+            "image_manifest": True,
+            "oci_media_types": True,
+            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache"),
+        },
+    }],
+    context={
+        "location": "../ultra-tic/",
+    },
+    platforms=[docker_build.Platform.LINUX_AMD64],
+    push=True,
+    registries=[{
+        "address": ecr_repository.repository_url,
+        "password": auth_token.password,
+        "username": auth_token.user_name,
+    }],
+    tags=[ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:latest")])
+
 # Web app deployment
 app_labels = {"app": web_app_config.get("name")}
 
-# deployment = k8s.apps.v1.Deployment(
-#     web_app_config.get("name"),
-#     metadata={
-#         "name": web_app_config.get("name"),
-#         "namespace": namespace.metadata.name
-#     },
-#     spec={
-#         "replicas": 1,
-#         "selector": {
-#             "matchLabels": app_labels
-#         },
-#         "template": {
-#             "metadata": {
-#                 "labels": app_labels
-#             },
-#             "spec": {
-#                 "containers": [{
-#                     "name": web_app_config.get("name"),
-#                     "image": pulumi.Output.concat(ecr_repository.repository_url, ":latest"),
-#                     "env": [{
-#                         "name": "DATABASE_URL",
-#                         "valueFrom": {
-#                             "secretKeyRef": {
-#                                 "name": "postgres-url-secret",
-#                                 "key": "postgres-url"
-#                             }
-#                         }
-#                     }]
-#                 }]
-#             }
-#         }
-#     },
-#     opts=pulumi.ResourceOptions(provider=k8s_provider)
-# )
+deployment = k8s.apps.v1.Deployment(
+    web_app_config.get("name"),
+    metadata={
+        "name": web_app_config.get("name"),
+        "namespace": namespace.metadata.name
+    },
+    spec={
+        "replicas": 1,
+        "selector": {
+            "matchLabels": app_labels
+        },
+        "template": {
+            "metadata": {
+                "labels": app_labels
+            },
+            "spec": {
+                "initContainers": [{
+                    "name": f"{web_app_config.get("name")}-init",
+                    "image": my_image.ref,
+                    "command": ["npx", "prisma", "migrate", "deploy"],
+                    "env": [{
+                        "name": "DATABASE_URL",
+                        "valueFrom": {
+                            "secretKeyRef": {
+                                "name": "postgres-url-secret",
+                                "key": "postgres-url"
+                            }
+                        }
+                    }]
+                }],
+                "containers": [{
+                    "name": web_app_config.get("name"),
+                    "image": my_image.ref,
+                    "env": [{
+                        "name": "DATABASE_URL",
+                        "valueFrom": {
+                            "secretKeyRef": {
+                                "name": "postgres-url-secret",
+                                "key": "postgres-url"
+                            }
+                        }
+                    }]
+                }]
+            }
+        }
+    },
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
+)
 
-# # Create a LoadBalancer Service for the Deployment
-# service = k8s.core.v1.Service(
-#     web_app_config.get("name"),
-#     metadata=k8s.meta.v1.ObjectMetaArgs(
-#         name=web_app_config.get("name"),
-#         namespace=namespace.metadata.name
-#     ),
-#     spec=k8s.core.v1.ServiceSpecArgs(
-#         selector=app_labels,
-#         ports=[
-#             k8s.core.v1.ServicePortArgs(
-#                 port=80,
-#                 target_port=web_app_config.get("target_port"),
-#                 protocol="TCP"
-#             )
-#         ],
-#         type="LoadBalancer"  # Expose via LoadBalancer
-#     ),
-#     opts=pulumi.ResourceOptions(provider=k8s_provider)
-# )
-
-# Install kapp-controller to the cluster
-# kapp_controller = k8s.yaml.v2.ConfigFile(
-#     "kapp-controller",
-#     file="https://github.com/carvel-dev/kapp-controller/releases/latest/download/release.yml",
-#     opts=pulumi.ResourceOptions(provider=k8s_provider)
-# )
-
-# Install kapp bootstrap prereqs to the cluster
-# kapp_prereqs = k8s.yaml.v2.ConfigFile(
-#     "kapp-prereqs",
-#     file="kapp-prereqs/k8s-resources.yaml",
-#     opts=pulumi.ResourceOptions(
-#         provider=k8s_provider,
-#         depends_on=kapp_controller
-#     )
-# )
-
-# # Kapp app
-# kapp_app = f"""
-# apiVersion: kappctrl.k14s.io/v1alpha1
-# kind: App
-# metadata:
-#     name: bootstrap-app
-#     namespace: kapp-apps
-# spec:
-#     serviceAccountName: kapp-apps-sa
-#     fetch:
-#     - git:
-#         url: {git_repo_url}
-#         ref: origin/main
-#         subPath: kapp
-
-#     template:
-#     - ytt: {{}}
-
-#     deploy:
-#     - kapp: {{}}
-# """
-
-# # Install kapp app to finish bootstrapping the cluster
-# kapp_bootstrap = k8s.yaml.v2.ConfigGroup(
-#     "kapp-bootstrap",
-#     yaml=kapp_app,
-#     opts=pulumi.ResourceOptions(
-#         provider=k8s_provider, 
-#         depends_on=kapp_prereqs
-#     )
-# )
+# Create a LoadBalancer Service for the Deployment
+service = k8s.core.v1.Service(
+    web_app_config.get("name"),
+    metadata=k8s.meta.v1.ObjectMetaArgs(
+        name=web_app_config.get("name"),
+        namespace=namespace.metadata.name
+    ),
+    spec=k8s.core.v1.ServiceSpecArgs(
+        selector=app_labels,
+        ports=[
+            k8s.core.v1.ServicePortArgs(
+                port=80,
+                target_port=web_app_config.get("target_port"),
+                protocol="TCP"
+            )
+        ],
+        type="LoadBalancer"  # Expose via LoadBalancer
+    ),
+    opts=pulumi.ResourceOptions(
+        provider=k8s_provider,
+        depends_on=deployment
+    )
+)

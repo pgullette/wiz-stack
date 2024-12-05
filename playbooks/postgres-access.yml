@@ -7,9 +7,9 @@
       community.postgresql.postgresql_pg_hba:
         dest: "/var/lib/pgsql/data/pg_hba.conf" 
         contype: "host"                        # Type: local, host, hostssl, etc.
-        users: ["all"]                         # PostgreSQL users
+        users: all                             # PostgreSQL users
         source: "{{ vpc_cidr }}"               # CIDR or IP for source
-        databases: ["all"]                     # Target database
+        databases: all                         # Target database
         method: "md5"                          # Authentication method
 
     - name: Reload PostgreSQL configuration
@@ -38,6 +38,7 @@
       community.postgresql.postgresql_privs:
         db: "{{ postgres_secret.db }}"
         privs: ALL
-        type: database
+        type: schema
+        objs: public
         role: "{{ postgres_secret.username }}"
       become_user: postgres
