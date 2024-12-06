@@ -25,7 +25,7 @@ export default function Game() {
         const winner = checkWin(board)
         setWinner(winner)
         checkDraw(board)
-    }, [Game])
+    })
 
 
     return (

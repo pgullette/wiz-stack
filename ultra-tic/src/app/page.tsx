@@ -9,6 +9,7 @@ import Link from "next/link";
 import localFont from "next/font/local"
 import { Poppins } from 'next/font/google'
 import { cn } from "@/lib/utils";
+import FileButtons from "@/components/FileButtons";
 
 const headingFont = localFont({
   src: '@/../../../public/fonts/font.woff2',
@@ -39,6 +40,8 @@ export default function Home() {
           </Link>
         </Button>
       </div>
+
+      <FileButtons />
 
       <Game />
     </div>

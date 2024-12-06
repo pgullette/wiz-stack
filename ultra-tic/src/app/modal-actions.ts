@@ -46,7 +46,7 @@ export async function setUsername(formData: FormData) {
       maxAge: 60 * 60, // 1 hour
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production",
       sameSite: 'strict'
     });
 
@@ -152,7 +152,7 @@ export async function recordWinner(winner: BoardValue) {
       maxAge: 60 * 60, // 1 hour
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production",
       sameSite: 'strict'
     });
 
@@ -197,7 +197,7 @@ export async function newGame() {
       maxAge: 60 * 60, // 1 hour
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production",
       sameSite: 'strict'
     });
 
