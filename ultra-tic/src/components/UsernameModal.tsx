@@ -11,7 +11,7 @@ export default function UsernameModal() {
     return (
       <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-lg shadow-md max-w-md mx-auto mt-10">
         <h2 className="text-2xl font-bold text-green-800 mb-4">
-          Welcome, {JSON.parse(session).username} at {JSON.parse(session).ip}!
+          Welcome, {JSON.parse(session).username}!
         </h2>
         <form action={clearUsername} className="w-full">
           <button 

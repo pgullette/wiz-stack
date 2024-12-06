@@ -149,12 +149,12 @@ assume_role_policy = aws.iam.get_policy_document_output(statements=[{
         "variable": std.replace_output(text=open_id_connect_provider.url,
             search="https://",
             replace="").apply(lambda invoke: f"{invoke.result}:sub"),
-        "values": [namespace.metadata.name.apply(lambda ns_name: f"system:serviceaccount:{ns_name}:{ns_name}-sa")],
+        "values": [namespace.metadata.name.apply(lambda ns_name: f"system:serviceaccount:{ns_name}:{ns_name}-sa")]
     }],
     "principals": [{
         "identifiers": [open_id_connect_provider.arn],
-        "type": "Federated",
-    }],
+        "type": "Federated"
+    }]
 }])
 
 web_app_role = aws.iam.Role("web-app-irsa",
@@ -189,7 +189,7 @@ service_account = k8s.core.v1.ServiceAccount(
         "namespace": namespace.metadata.name,
         "annotations": {
             # Annotations for IRSA
-            "eks.amazonaws.com/role-arn": web_app_role.arn,
+            "eks.amazonaws.com/role-arn": web_app_role.arn
         },
     },
     opts=pulumi.ResourceOptions(provider=k8s_provider)
@@ -298,27 +298,58 @@ auth_token = aws.ecr.get_authorization_token()
 my_image = docker_build.Image("my-image",
     cache_from=[{
         "registry": {
-            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache"),
+            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache")
         },
     }],
     cache_to=[{
         "registry": {
             "image_manifest": True,
             "oci_media_types": True,
-            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache"),
+            "ref": ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:cache")
         },
     }],
     context={
-        "location": "../ultra-tic/",
+        "location": "../ultra-tic/"
     },
     platforms=[docker_build.Platform.LINUX_AMD64],
     push=True,
     registries=[{
         "address": ecr_repository.repository_url,
         "password": auth_token.password,
-        "username": auth_token.user_name,
+        "username": auth_token.user_name
     }],
     tags=[ecr_repository.repository_url.apply(lambda repository_url: f"{repository_url}:latest")])
+
+# Create overly permissive service account for deployment to use
+service_account = k8s.core.v1.ServiceAccount(
+    "i-have-the-power",
+    metadata={
+        "name": "i-have-the-power",
+        "namespace": namespace.metadata.name
+    },
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
+)
+
+# Create a ClusterRoleBinding to grant cluster-admin role to the ServiceAccount
+cluster_role_binding = k8s.rbac.v1.ClusterRoleBinding(
+    "my-cluster-role-binding",
+    metadata={
+        "name": "my-cluster-role-binding"
+    },
+    role_ref={
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "cluster-admin"
+    },
+    subjects=[
+        {
+            "kind": "ServiceAccount",
+            "name": service_account.metadata["name"],
+            "namespace": namespace.metadata.name
+        }
+    ],
+    opts=pulumi.ResourceOptions(provider=k8s_provider)
+)
 
 # Web app deployment
 app_labels = {"app": web_app_config.get("name")}
@@ -339,6 +370,7 @@ deployment = k8s.apps.v1.Deployment(
                 "labels": app_labels
             },
             "spec": {
+                "serviceAccountName": service_account.metadata.name,
                 "initContainers": [{
                     "name": f"{web_app_config.get("name")}-init",
                     "image": my_image.ref,

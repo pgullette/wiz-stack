@@ -10,6 +10,7 @@ import localFont from "next/font/local"
 import { Poppins } from 'next/font/google'
 import { cn } from "@/lib/utils";
 import FileButtons from "@/components/FileButtons";
+import PaginatedTable from "@/components/PaginatedTable";
 
 const headingFont = localFont({
   src: '@/../../../public/fonts/font.woff2',
@@ -28,7 +29,6 @@ export default function Home() {
         <h2 className={cn("scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl text-center", headingFont.className)}>
           <span className="text-red-600">Ultra</span> Tic Tac Toe
         </h2>
-        <UsernameModal />
         <p className={cn("text-sm text-muted-foreground text-center max-w-80", textFont.className)}>
           Achieve a three-in-a-row victory across multiple nested 3x3 grids within a larger board.
         </p>
@@ -41,6 +41,8 @@ export default function Home() {
         </Button>
       </div>
 
+      <UsernameModal />
+      <PaginatedTable />
       <FileButtons />
 
       <Game />

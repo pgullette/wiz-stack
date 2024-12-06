@@ -209,3 +209,50 @@ export async function newGame() {
     };
   }
 }
+
+// Define the return type for fetchRows
+interface FetchRowsResponse {
+  rows: { 
+    id: Number; 
+    username: string; 
+    createdAt: Date, 
+    move_count: Number,
+    wonAt: Date,
+    winner: Number
+  }[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// Server action to fetch stats with pagination
+export async function fetchStats(page: number = 1, pageSize: number = 10): Promise<FetchRowsResponse> {
+  const totalCount = await prisma.game.count();
+  const rows = await prisma.game.findMany({
+    include: {
+      user: true,
+      _count: {
+        select: {
+          moves: true
+        }
+      }
+    },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    orderBy: { createdAt: 'desc' } // Adjust based on your schema
+  });
+
+  return {
+    rows: rows.map((row: { id: any; user: { username: any; }; createdAt: any; _count: { moves: any; }; wonAt: any; winner: any; }) => ({
+      id: row.id,
+      username: row.user?.username,
+      createdAt: row.createdAt,
+      move_count: row._count?.moves,
+      wonAt: row.wonAt,
+      winner: row.winner
+    })),
+    totalCount,
+    currentPage: page,
+    totalPages: Math.ceil(totalCount / pageSize),
+  };
+}
