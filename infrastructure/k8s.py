@@ -395,3 +395,14 @@ service = k8s.core.v1.Service(
         depends_on=deployment
     )
 )
+
+# Export the LoadBalancer's DNS name or IP
+dns_name = service.status.apply(
+    lambda status: status.load_balancer.ingress[0].hostname
+    if status.load_balancer.ingress and "hostname" in status.load_balancer.ingress[0]
+    else status.load_balancer.ingress[0].ip
+    if status.load_balancer.ingress
+    else None
+)
+
+pulumi.export("web-app lb dns", dns_name)

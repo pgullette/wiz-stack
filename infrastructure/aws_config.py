@@ -94,5 +94,3 @@ s3_public_read_prohibited_rule = aws.cfg.Rule(
     ),
     opts=pulumi.ResourceOptions(depends_on=config_recorder)
 )
-
-pulumi.export("bucket_name", config_bucket.bucket)

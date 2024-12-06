@@ -44,5 +44,3 @@ s3_bucket_policy = aws.s3.BucketPolicy(
     ),
     opts=pulumi.ResourceOptions(depends_on=public_access_block)
 )
-
-pulumi.export("s3_bucket_name", s3_bucket.bucket)

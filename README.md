@@ -12,11 +12,11 @@
 ## Web Application Configuration
 
 [x] Create an EKS cluster instance in the same VPC as your database server.  
-[ ] Build and host a container image for your web application.  
-[ ] Ensure your built container image contains an arbitrary file called `wizexercise.txt` with some content.  
-[ ] Deploy your container-based web application to the EKS cluster.  
-[ ] Ensure your web application authenticates to your database server (connection strings are a common approach).  
-[ ] Allow public internet traffic to your web application using the service type `LoadBalancer`.  
+[x] Build and host a container image for your web application.  
+[x] Ensure your built container image contains an arbitrary file called `wizexercise.txt` with some content.  
+[x] Deploy your container-based web application to the EKS cluster.  
+[x] Ensure your web application authenticates to your database server (connection strings are a common approach).  
+[x] Allow public internet traffic to your web application using the service type `LoadBalancer`.  
 [ ] Configure your EKS cluster to grant `cluster-admin` privileges to your web application container(s).
 
 ## S3 Bucket Configuration
@@ -31,11 +31,8 @@
 
 ## Stretch Goals
 [ ] Update web-app to show games, moves, players
-[ ] Add github action to rebuild and publish container image
-[ ] Add github action to deploy built image
-[ ] Use local runner with ecr perms via iam role
-[ ] Deploy runner, ns, rbac, etc with pulumi
-[ ] Create secret with pulumi for db creds
-[ ] Use secret during db instance creation
-[ ] Mount secret to web app via external-secrets
+[x] Create secret with pulumi for db creds
+[x] Use secret during db instance creation
+[x] Mount secret to web app via external-secrets
+[ ] Add SSL cert in front of app via letsencrypt/cert-manager
 
