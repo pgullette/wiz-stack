@@ -45,6 +45,11 @@ policy_object = {
     "Statement": [
         {
             "Effect": "Allow",
+            "Action": "ec2:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
             "Action": "s3:PutObject",
             "Resource": f"arn:aws:s3:::{s3_bucket_name}/*"
         },
@@ -62,12 +67,12 @@ policy_object = {
 }
 
 policy = aws.iam.Policy("db-instance-extra-perms",
-    description="Policy that allows instance to access S3 bucket for backups and needed secrets",
+    description="Policy that allows instance to access S3 bucket for backups, needed secrets and all ec2",
     policy=json.dumps(policy_object)
 )
 
 # Attach the policy to the role
-role_policy_attachment = aws.iam.RolePolicyAttachment("rolePolicyAttachment",
+role_policy_attachment = aws.iam.RolePolicyAttachment("db-instance-extra-perms-rpa",
     role=role.name,
     policy_arn=policy.arn
 )
