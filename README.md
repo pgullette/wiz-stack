@@ -28,12 +28,13 @@
 
 [x] Activate and ensure AWS Config covers your environment.  
 [x] Ensure AWS Config detects one or more misconfigurations you can review in your presentation, introducing novel misconfigurations if necessary.  
-
+ 
 ## Stretch Goals
+
 [x] Update web-app to show games, moves, players
 [x] Create secret with pulumi for db creds
 [x] Use secret during db instance creation
 [x] Mount secret to web app via external-secrets
-[ ] Add SSL cert in front of app via letsencrypt/cert-manager
-[ ] Add extra AWS config rules
+[] Add SSL cert in front of app via letsencrypt/cert-manager
+[] Add extra AWS config rules
 
