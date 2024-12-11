@@ -31,10 +31,10 @@
  
 ## Stretch Goals
 
-[x] Update web-app to show games, moves, players
-[x] Create secret with pulumi for db creds
-[x] Use secret during db instance creation
-[x] Mount secret to web app via external-secrets
-[] Add SSL cert in front of app via letsencrypt/cert-manager
-[] Add extra AWS config rules
+[x] Update web-app to show games, moves, players  
+[x] Create secret with pulumi for db creds  
+[x] Use secret during db instance creation  
+[x] Mount secret to web app via external-secrets  
+[ ] Add SSL cert in front of app via letsencrypt/cert-manager  
+[ ] Add extra AWS config rules  
 
