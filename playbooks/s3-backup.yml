@@ -24,7 +24,7 @@
       cron:
         name: "PostgreSQL Daily Backup"
         minute: "0"
-        hour: "2"
+        hour: "14-22"
         job: >
           pg_dumpall -U postgres | gzip > /var/backups/pg_backup_$(date +\%F).sql.gz &&
           aws s3 cp /var/backups/pg_backup_$(date +\%F).sql.gz s3://{{ s3_bucket_name }}/pg_backups/
