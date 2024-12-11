@@ -16,16 +16,11 @@
       args:
         creates: /var/lib/pgsql/data/postgresql.conf
 
-    - name: Update listen_addresses in postgresql.conf
-      lineinfile:
-        path: /var/lib/pgsql/data/postgresql.conf
-        regexp: '^#?listen_addresses ='
-        line: "listen_addresses = '*'"
-        state: present
-
-    - name: Start PostgreSQL service
+    - name: Start and enable services
       service:
-        name: postgresql
+        name: 
+          - postgresql
+          - crond
         state: started
         enabled: yes
 

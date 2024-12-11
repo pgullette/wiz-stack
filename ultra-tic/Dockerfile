@@ -1,6 +1,6 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM node:18-alpine AS base
+FROM node:19-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -29,12 +29,10 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN \
-  if [ -f yarn.lock ]; then yarn prisma generate; yarn run build; \
-  elif [ -f package-lock.json ]; then npx prisma generate; npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm prisma generate; pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+RUN if [ -f package-lock.json ]; then \
+      npx prisma generate && npm run build; \
+    else echo "Lockfile not found." && exit 1; \
+    fi
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -48,14 +46,16 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy prisma
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./
+# Copy prisma components
+COPY --chown=nextjs:nodejs prisma ./prisma
+# COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 
@@ -66,4 +66,4 @@ ENV PORT=3000
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["npm", "run", "prod"]

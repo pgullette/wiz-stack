@@ -6,7 +6,7 @@ import pulumi_std as std
 import pulumi_tls as tls
 import pulumi_random as random
 import pulumi_docker_build as docker_build
-from eks import eks_cluster
+from eks import eks_cluster, node_group
 from ecr import ecr_repository
 from urllib.parse import quote
 
@@ -64,7 +64,8 @@ kubeconfig = pulumi.Output.all(
 # Add k8s bootstrap components to cluster
 k8s_provider = k8s.Provider(
     "k8s-provider",
-    kubeconfig=kubeconfig
+    kubeconfig=kubeconfig,
+    opts=(pulumi.ResourceOptions(depends_on=node_group))
 )
 
 ########################################
@@ -371,20 +372,20 @@ deployment = k8s.apps.v1.Deployment(
             },
             "spec": {
                 "serviceAccountName": service_account.metadata.name,
-                "initContainers": [{
-                    "name": f"{web_app_config.get("name")}-init",
-                    "image": my_image.ref,
-                    "command": ["npx", "prisma", "migrate", "deploy"],
-                    "env": [{
-                        "name": "DATABASE_URL",
-                        "valueFrom": {
-                            "secretKeyRef": {
-                                "name": "postgres-url-secret",
-                                "key": "postgres-url"
-                            }
-                        }
-                    }]
-                }],
+                # "initContainers": [{
+                #     "name": f"{web_app_config.get("name")}-init",
+                #     "image": my_image.ref,
+                #     "command": ["npx", "--y", "prisma", "migrate", "deploy"],
+                #     "env": [{
+                #         "name": "DATABASE_URL",
+                #         "valueFrom": {
+                #             "secretKeyRef": {
+                #                 "name": "postgres-url-secret",
+                #                 "key": "postgres-url"
+                #             }
+                #         }
+                #     }]
+                # }],
                 "containers": [{
                     "name": web_app_config.get("name"),
                     "image": my_image.ref,

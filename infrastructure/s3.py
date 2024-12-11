@@ -9,7 +9,7 @@ s3_bucket = aws.s3.Bucket(
     force_destroy=True,  # Optional: Allows bucket deletion even if it contains objects
 )
 
-# # Disable Block Public Access settings for the bucket
+# # Disable Block Public Access settings for the buckekt
 public_access_block = aws.s3.BucketPublicAccessBlock("bucket-public-access-block",
     bucket=s3_bucket.id,
     block_public_policy=False,  # Allow public bucket policies

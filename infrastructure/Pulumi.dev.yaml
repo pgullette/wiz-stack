@@ -19,6 +19,8 @@ config:
   infrastructure:db_instance: db-instance
   infrastructure:web_app:
     name: ultratic
-    postgres_secret: ultratic-postgres-secret-v2
+    postgres_secret: ultratic-postgres-secret-v3
     target_port: 3000
-
+  infrastructure:tags:
+    user_name: paul
+    stack_name: my-stack
