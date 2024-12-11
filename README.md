@@ -3,7 +3,7 @@
 ## Database Server Configuration
 
 [x] Create a Linux EC2 instance on which a database server is installed (e.g., MongoDB).  
-[ ] Configure the database with authentication so you can build a database connection string.  
+[x] Configure the database with authentication so you can build a database connection string.  
 [x] Allow database traffic to originate only from your VPC.  
 [x] Configure the database to regularly and automatically back up to your exercise S3 bucket.  
 [x] Configure an instance profile to the VM and add the permission `ec2:*` as a custom policy.  
